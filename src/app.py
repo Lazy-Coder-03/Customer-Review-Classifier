@@ -87,8 +87,11 @@ if os.path.exists(metrics_path):
         st.subheader('Model Metrics & Performance')
         st.markdown("""
         **Accuracy**: The percentage of correct predictions out of all predictions.
+        
         **Precision**: Of all predicted instances of a category, how many were actually correct.
+        
         **Recall**: Of all actual instances of a category, how many were correctly found by the model.
+        
         **F1 Score**: The harmonic mean of Precision and Recall, providing a single score that balances both.
         """)
         st.write(f"**Overall Accuracy:** `{metrics.get('accuracy', metrics.get('overall_accuracy', 0)):.2f}`")
