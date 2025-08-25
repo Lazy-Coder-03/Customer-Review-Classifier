@@ -135,7 +135,7 @@ st.markdown("---")
 
 # --- Inference Section ---
 st.subheader("Predict Customer Review")
-query = st.text_area('Enter a customer review:', key='review_input')
+query = st.text_area('Enter a customer review:', key='review_input', placeholder="E.g., 'The product stopped working after a week of use.'", height=100)
 if st.button('Classify Text', key='classify_btn'):
     if query.strip():
         inputs = tokenizer(query, return_tensors='pt', truncation=True, padding=True, max_length=128)
