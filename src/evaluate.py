@@ -5,10 +5,11 @@ import pandas as pd
 import numpy as np
 import torch
 from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
+
 
 # Load test data and model
 try:
@@ -72,7 +73,7 @@ try:
     plt.ylabel('F1 Score')
     plt.xlabel('Category')
     plt.tight_layout()
-    plt.savefig('output/f1_scores.png')
+    plt.savefig('output/results/f1_scores.png')
     plt.close()
 
     plt.figure(figsize=(8,4))
@@ -83,13 +84,32 @@ try:
     plt.tight_layout()
     plt.savefig('output/results/confidence_distribution.png')
     plt.close()
-
-    # Output summary report
+    # confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=label_names, yticklabels=label_names)
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.savefig('output/results/confusion_matrix.png')
+    plt.close()
+    # Output summary report with all metrics per category
+    category_metrics = {}
+    for label in labels:
+        category_metrics[label] = {
+            'precision': report[label]['precision'],
+            'recall': report[label]['recall'],
+            'f1-score': report[label]['f1-score'],
+            'support': report[label]['support']
+        }
     summary = {
         'overall_accuracy': accuracy,
         'average_confidence': float(np.mean(confidences)),
         'test_cases_run': len(y_test),
-        'category_f1_scores': dict(zip(labels, f1_scores))
+        'category_f1_scores': dict(zip(labels, f1_scores)),
+        'category_metrics': category_metrics
     }
     with open('output/results/summary_report.json', 'w') as f:
         json.dump(summary, f, indent=2)
