@@ -1,3 +1,6 @@
+"""
+Author: Sayantan Ghosh (https://github.com/Lazy-Coder-03)
+"""
 import pandas as pd
 import re
 from sklearn.preprocessing import LabelEncoder

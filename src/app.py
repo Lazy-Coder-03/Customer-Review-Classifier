@@ -1,3 +1,6 @@
+"""
+Author: Sayantan Ghosh (https://github.com/Lazy-Coder-03)
+"""
 import streamlit as st
 import json
 import os
@@ -25,6 +28,7 @@ try:
         # The transformers library handles downloading and caching
         tokenizer = DistilBertTokenizerFast.from_pretrained(model_id)
         model = DistilBertForSequenceClassification.from_pretrained(model_id)
+        model = model.to('cpu')
         model.eval()
 
     # Clear the info message once the model is loaded
@@ -57,10 +61,15 @@ if os.path.exists(metrics_path):
 if metrics:
     st.subheader('Model Metrics & Performance')
     st.markdown("""
+                
     **Accuracy**: The percentage of correct predictions.
+    
     **Precision**: Of all predicted instances of a category, how many were correct.
+    
     **Recall**: Of all actual instances of a category, how many were found.
+    
     **F1 Score**: A balance of precision and recall.
+    
     """)
     st.write(f"**Overall Accuracy:** `{metrics['accuracy']:.2f}`")
     st.write('**Category-wise F1 Scores:**')
@@ -78,6 +87,8 @@ if st.button('Classify Text', key='classify_btn'):
     if query.strip():
         # Perform inference
         inputs = tokenizer(query, return_tensors='pt', truncation=True, padding=True, max_length=128)
+        for k in inputs:
+            inputs[k] = inputs[k].to('cpu')
         with torch.no_grad():
             outputs = model(**inputs)
             logits = outputs.logits
@@ -103,5 +114,11 @@ if st.button('Classify Text', key='classify_btn'):
         ax.set_xlabel('Confidence (%)')
         ax.set_title('Confidence by Category')
         st.pyplot(fig)
+        st.markdown("---")
+        st.markdown("##### About this App")
+        st.markdown("""
+        This app uses a fine-tuned DistilBERT model to classify customer reviews into predefined categories. The model was trained on a dataset of customer queries and their corresponding categories. by [Sayantan Ghosh](https://github.com/Lazy-Coder-03)
+        """)
+        
     else:
         st.warning('Please enter some text.')

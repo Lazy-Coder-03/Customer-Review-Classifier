@@ -10,3 +10,6 @@ uvicorn
 streamlit
 fastapi
 huggingface-hub
+# """
+# Author: Sayantan Ghosh (https://github.com/Lazy-Coder-03)
+# """

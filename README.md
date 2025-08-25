@@ -96,7 +96,7 @@ AI_ML/
    ```
 6. **Start the app:**
    ```sh
-   python src/main.py
+   python src/app.py
    ```
 
 7. **Access the app:**
