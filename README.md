@@ -63,91 +63,40 @@ Customer-Review-Classifier/
 
 ```
 
-## 🚀 Quickstart: Running Locally
+## Quickstart
+1. **Install dependencies:**
+   ```sh
+   pip install -r requirements.txt
+   ```
+2. **Prepare data:**
+   ```sh
+   python src/prepare_data.py
+   ```
+3. **Train model:**
+   ```sh
+   python src/train.py
+   ```
+4. **Evaluate model:**
+   ```sh
+   python src/evaluate.py
+   ```
+5. **Upload model to Hugging Face Hub:**
+   ```sh
+   huggingface-cli login
+   python src/upload_to_hf.py
+   ```
+6. **Start the app:**
+   ```sh
+   python src/app.py
+   ```
 
-1. **Clone the Repository**
+7. **Access the app:**
+   - Open [http://localhost:8501](http://localhost:8501) in your browser after running the command above.
 
-```
+## Notes
+- Large model files are not tracked in Git. See `.gitignore`.
+- For custom categories, update `cat_map` in `app.py` and `api.py`.
+- For issues or improvements, open an issue or pull request.
 
-git clone [https://github.com/Lazy-Coder-03/Customer-Review-Classifier.git](https://www.google.com/search?q=https://github.com/Lazy-Coder-03/Customer-Review-Classifier.git)
-cd Customer-Review-Classifier
-
-```
-
-2. **Install Dependencies**
-
-```
-
-pip install -r requirements.txt
-
-```
-
-3. **Prepare the Data**
-
-```
-
-python src/prepare\_data.py
-
-```
-
-4. **Train the Model**
-
-```
-
-python src/train.py
-
-```
-
-5. **Evaluate the Model**
-
-```
-
-python src/evaluate.py
-
-```
-
-This step generates the metrics and visualizations for the app dashboard.
-
-6. **Run the App**
-
-```
-
-streamlit run src/app.py
-
-```
-
-Access the app in your browser at [http://localhost:8501](http://localhost:8501).
-
-## ☁️ Deployment on Hugging Face Spaces
-
-This project is configured for seamless deployment on Hugging Face Spaces by linking your GitHub repository. Any changes pushed to the `main` branch will automatically trigger a new build.
-
-1. **Upload Your Model to the Hub**
-Your model's files must be on the Hub. Use your local scripts to push the model.
-
-```
-
-# Log in to your Hugging Face account
-
-huggingface-cli login
-
-# Push the local model files to the Hub
-
-python src/upload\_to\_hf.py
-
-```
-
-2. **Link Your GitHub Repo to a Space**
-
-* Create a new Space on [huggingface.co/new](https://huggingface.co/new).
-
-* Select **Streamlit** as the SDK.
-
-* Choose your `Customer-Review-Classifier` GitHub repository from the dropdown.
-
-The Space will automatically build and deploy your app. The `app.py` script will handle downloading the model from the Hugging Face Hub when it first runs.
-
-## ✍️ Author
-
-[Sayantan Ghosh](https://github.com/Lazy-Coder-03)
 ---
+**Author:** Sayantan Ghosh ([Lazycoder03](https://github.com/lazy-coder-03))
