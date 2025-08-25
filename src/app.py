@@ -93,13 +93,14 @@ if os.path.exists(metrics_path):
         **Recall**: Of all actual instances of a category, how many were correctly found by the model.
         
         **F1 Score**: The harmonic mean of Precision and Recall, providing a single score that balances both.
+
+        **Support**: The number of actual instances of a category in the test dataset.
         """)
         st.write(f"**Overall Accuracy:** `{metrics.get('accuracy', metrics.get('overall_accuracy', 0)):.2f}`")
 
         metrics_tab, confusion_tab = st.tabs(["Performance by Category", "Confusion Matrix"])
 
         with metrics_tab:
-            st.markdown("---")
             st.markdown("#### Category-wise Metrics")
             if 'category_metrics' in metrics:
                 cat_metrics_df = pd.DataFrame(metrics['category_metrics']).T
@@ -122,7 +123,6 @@ if os.path.exists(metrics_path):
                 st.pyplot(fig2)
         
         with confusion_tab:
-            st.markdown("---")
             st.markdown("#### Confusion Matrix")
             if os.path.exists(confusion_matrix_path):
                 image = Image.open(confusion_matrix_path)
