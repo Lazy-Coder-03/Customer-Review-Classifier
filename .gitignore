@@ -1,0 +1,12 @@
+src/__pycache__/
+.venv/
+.env
+*.pyc
+*.pyo
+*.pyd
+distilbert_model/
+output/distilbert_model/
+
+upload_to_hf.py
+
+make_data_gemini.py

@@ -1,0 +1,12 @@
+google-generativeai
+pandas
+transformers
+scikit-learn
+joblib
+torch
+matplotlib
+seaborn
+uvicorn 
+streamlit
+fastapi
+huggingface-hub
