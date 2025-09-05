@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import pandas as pd
 from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
+from huggingface_hub import hf_hub_download
 import matplotlib.pyplot as plt
 import io
 import seaborn as sns
@@ -17,7 +18,7 @@ import joblib
 # --- Developer-facing configuration ---
 # Set to True to load the model from a local directory.
 # Set to False to download the model from the Hugging Face Hub.
-USE_LOCAL_MODEL = False
+USE_LOCAL_MODEL = False # Set this to false for deployment
 
 # Define paths
 MODEL_PATH = 'model/distilbert_model'
@@ -48,17 +49,16 @@ def load_model_and_tokenizer():
     else:
         try:
             st.info(f"Downloading model from Hugging Face Hub: {HUB_MODEL_ID}")
+            # The Hugging Face Hub library automatically handles the model and tokenizer
             tokenizer = DistilBertTokenizerFast.from_pretrained(HUB_MODEL_ID)
             model = DistilBertForSequenceClassification.from_pretrained(HUB_MODEL_ID)
             model.eval()
 
-            # Load label encoder (assuming it's in the repo or a local file)
-            if os.path.exists(LOCAL_LABEL_ENCODER_PATH):
-                le = joblib.load(LOCAL_LABEL_ENCODER_PATH)
-                idx_to_cat = {i: name for i, name in enumerate(le.classes_)}
-            else:
-                st.warning("Warning: LabelEncoder not found. Using hardcoded labels as a fallback.")
-                idx_to_cat = {0: 'Billing Issue', 1: 'Complaint', 2: 'Compliment', 3: 'Product Question', 4: 'Technical Problem'}
+            # Explicitly download the label encoder file
+            le_path = hf_hub_download(repo_id=HUB_MODEL_ID, filename="label_encoder.pkl", local_dir=MODEL_PATH)
+            le = joblib.load(le_path)
+            idx_to_cat = {i: name for i, name in enumerate(le.classes_)}
+            
             return tokenizer, model, idx_to_cat
         except Exception as e:
             st.error(f"Error downloading model from Hugging Face Hub: {e}")
@@ -131,8 +131,6 @@ if os.path.exists(metrics_path):
             st.markdown("#### Category-wise Metrics")
             if 'category_metrics' in metrics:
                 cat_metrics_df = pd.DataFrame(metrics['category_metrics']).T
-                # The keys in the new summary report are already the category names (strings),
-                # so no need to map them. We simply display the table as is.
                 st.table(cat_metrics_df)
 
                 fig, ax = plt.subplots(figsize=(10, 6))
