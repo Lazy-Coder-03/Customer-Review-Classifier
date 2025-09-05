@@ -17,7 +17,7 @@ import joblib
 # --- Developer-facing configuration ---
 # Set to True to load the model from a local directory.
 # Set to False to download the model from the Hugging Face Hub.
-USE_LOCAL_MODEL = True
+USE_LOCAL_MODEL = False
 
 # Define paths
 MODEL_PATH = 'model/distilbert_model'
