@@ -9,3 +9,4 @@ distilbert_model/
 output/results/
 models/distilbert_model/
 results/distilbert_results/
+category_counts.py
