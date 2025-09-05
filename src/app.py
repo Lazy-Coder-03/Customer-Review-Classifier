@@ -12,12 +12,59 @@ import matplotlib.pyplot as plt
 import io
 import seaborn as sns
 from PIL import Image
+import joblib
 
-# Define the Hugging Face Hub model ID
-model_id = "Lazycoder03/DistilBERT-Customer-Review-Classifier"
+# --- Developer-facing configuration ---
+# Set to True to load the model from a local directory.
+# Set to False to download the model from the Hugging Face Hub.
+USE_LOCAL_MODEL = True
+
+# Define paths
+MODEL_PATH = 'model/distilbert_model'
+HUB_MODEL_ID = "Lazycoder03/DistilBERT-Customer-Review-Classifier"
+LOCAL_LABEL_ENCODER_PATH = os.path.join(MODEL_PATH, 'label_encoder.pkl')
+
+# --- Model Loading with Caching ---
+@st.cache_resource
+def load_model_and_tokenizer():
+    """Loads the model, tokenizer, and label encoder based on the configuration flag."""
+    if USE_LOCAL_MODEL:
+        try:
+            st.info("Using local model...")
+            tokenizer = DistilBertTokenizerFast.from_pretrained(MODEL_PATH)
+            model = DistilBertForSequenceClassification.from_pretrained(MODEL_PATH)
+            model.eval()
+
+            # Load the LabelEncoder from the local directory
+            le = joblib.load(LOCAL_LABEL_ENCODER_PATH)
+            idx_to_cat = {i: name for i, name in enumerate(le.classes_)}
+            return tokenizer, model, idx_to_cat
+        except FileNotFoundError:
+            st.error(f"Error: Local model files not found in '{MODEL_PATH}'. Please train the model first or switch to download mode.")
+            st.stop()
+        except Exception as e:
+            st.error(f"Error loading local model: {e}")
+            st.stop()
+    else:
+        try:
+            st.info(f"Downloading model from Hugging Face Hub: {HUB_MODEL_ID}")
+            tokenizer = DistilBertTokenizerFast.from_pretrained(HUB_MODEL_ID)
+            model = DistilBertForSequenceClassification.from_pretrained(HUB_MODEL_ID)
+            model.eval()
+
+            # Load label encoder (assuming it's in the repo or a local file)
+            if os.path.exists(LOCAL_LABEL_ENCODER_PATH):
+                le = joblib.load(LOCAL_LABEL_ENCODER_PATH)
+                idx_to_cat = {i: name for i, name in enumerate(le.classes_)}
+            else:
+                st.warning("Warning: LabelEncoder not found. Using hardcoded labels as a fallback.")
+                idx_to_cat = {0: 'Billing Issue', 1: 'Complaint', 2: 'Compliment', 3: 'Product Question', 4: 'Technical Problem'}
+            return tokenizer, model, idx_to_cat
+        except Exception as e:
+            st.error(f"Error downloading model from Hugging Face Hub: {e}")
+            st.stop()
 
 # --- Streamlit App UI ---
-# Use the "centered" layout for a cleaner, more professional look
 st.set_page_config(page_title="Customer Review Classifier", page_icon="🤖", layout="centered")
 
 # Custom CSS for a professional look
@@ -42,43 +89,23 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
-if 'page_loaded' not in st.session_state:
-    with st.spinner("Loading page..."):
-        st.session_state['page_loaded'] = True
 st.title('Customer Review Classifier')
 st.markdown("<h3 style='text-align: center;'>Predict the category of a customer review using a fine-tuned DistilBERT model.</h3>", unsafe_allow_html=True)
 st.markdown("---")
 
 # Section to display model loading status
 st.subheader("Model Loading Status")
-info_message = st.info("Model and tokenizer are loading... This may take a few moments on the first run.")
-try:
-    with st.spinner("Downloading model from Hugging Face Hub..."):
-        tokenizer = DistilBertTokenizerFast.from_pretrained(model_id)
-        model = DistilBertForSequenceClassification.from_pretrained(model_id)
-        model.eval()
-    info_message.empty()
+with st.spinner("Loading model..."):
+    tokenizer, model, idx_to_cat = load_model_and_tokenizer()
     st.success("✅ Model loaded successfully!")
-except Exception as e:
-    st.error(f"Error loading model from Hugging Face Hub: {e}")
-    st.stop()
+
 st.markdown("---")
 
 # --- Other UI Elements ---
-# Load category mapping and metrics
-try:
-    df = pd.read_csv('data/sample_data_cleaned.csv')
-    cat_map_df = df[['category_encoded', 'category']].drop_duplicates().sort_values('category_encoded')
-    idx_to_cat = dict(zip(cat_map_df['category_encoded'], cat_map_df['category']))
-    cat_map = {idx: name for idx, name in idx_to_cat.items()}
-except FileNotFoundError:
-    st.error("Missing required file: `data/sample_data_cleaned.csv`. Please upload it to your Space.")
-    st.stop()
-
 metrics = None
 metrics_path = 'output/results/summary_report.json'
 confusion_matrix_path = 'output/results/confusion_matrix.png'
+
 if os.path.exists(metrics_path):
     with open(metrics_path, 'r') as f:
         metrics = json.load(f)
@@ -104,7 +131,8 @@ if os.path.exists(metrics_path):
             st.markdown("#### Category-wise Metrics")
             if 'category_metrics' in metrics:
                 cat_metrics_df = pd.DataFrame(metrics['category_metrics']).T
-                cat_metrics_df.index = [cat_map.get(int(k), k) for k in cat_metrics_df.index]
+                # The keys in the new summary report are already the category names (strings),
+                # so no need to map them. We simply display the table as is.
                 st.table(cat_metrics_df)
 
                 fig, ax = plt.subplots(figsize=(10, 6))
@@ -114,13 +142,6 @@ if os.path.exists(metrics_path):
                 ax.set_ylim(0, 1.1)
                 ax.tick_params(axis='x', rotation=45)
                 st.pyplot(fig)
-                
-                fig2, ax2 = plt.subplots(figsize=(10, 6))
-                cat_metrics_df['support'].plot(kind='bar', ax=ax2, color='skyblue', title='Sample Support by Category')
-                ax2.set_ylabel('Number of Samples')
-                ax2.set_xlabel('Category')
-                ax2.tick_params(axis='x', rotation=45)
-                st.pyplot(fig2)
         
         with confusion_tab:
             st.markdown("#### Confusion Matrix")
@@ -136,36 +157,36 @@ st.markdown("---")
 # --- Inference Section ---
 st.subheader("Predict Customer Review")
 query = st.text_area('Enter a customer review:', key='review_input', placeholder="E.g., 'The product stopped working after a week of use.'", height=100)
-if st.button('Classify Text', key='classify_btn'):
-    if query.strip():
-        inputs = tokenizer(query, return_tensors='pt', truncation=True, padding=True, max_length=128)
-        with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits
-            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-            pred_idx = int(np.argmax(probs))
-            confidence = float(np.max(probs))
-            confidences = probs.tolist()
-            
-        category = idx_to_cat.get(pred_idx, 'Unknown')
+
+# Check if text area is empty to enable/disable button
+is_query_empty = not query.strip()
+if st.button('Classify Text', key='classify_btn', disabled=is_query_empty):
+    inputs = tokenizer(query, return_tensors='pt', truncation=True, padding=True, max_length=128)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+        pred_idx = int(np.argmax(probs))
+        confidence = float(np.max(probs))
+        confidences = probs.tolist()
         
-        st.markdown(f"""
-        <div style='background-color:#262730;color:#fafafa;padding:1em;border-radius:10px;margin-bottom:1em;'>
-            <h4 style='color:#fafafa;'>Prediction</h4>
-            <b>Category:</b> {category}<br>
-            <b>Confidence:</b> {confidence*100:.2f}%
-        </div>
-        """, unsafe_allow_html=True)
-        
-        conf_labels = [cat_map.get(i, str(i)) for i in range(len(confidences))]
-        fig, ax = plt.subplots(figsize=(8,3))
-        ax.barh(conf_labels, np.array(confidences)*100, color='#6fa8dc')
-        ax.set_xlabel('Confidence (%)')
-        ax.set_title('Confidence by Category')
-        st.pyplot(fig)
-        
-    else:
-        st.warning('Please enter some text.')
+    category = idx_to_cat.get(pred_idx, 'Unknown')
+    
+    st.markdown(f"""
+    <div style='background-color:#262730;color:#fafafa;padding:1em;border-radius:10px;margin-bottom:1em;'>
+        <h4 style='color:#fafafa;'>Prediction</h4>
+        <b>Category:</b> {category}<br>
+        <b>Confidence:</b> {confidence*100:.2f}%
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create the confidence plot using the dynamic category names
+    conf_labels = [idx_to_cat.get(i, str(i)) for i in range(len(confidences))]
+    fig, ax = plt.subplots(figsize=(8,3))
+    ax.barh(conf_labels, np.array(confidences)*100, color='#6fa8dc')
+    ax.set_xlabel('Confidence (%)')
+    ax.set_title('Confidence by Category')
+    st.pyplot(fig)
         
 st.markdown("---")
 st.markdown("##### About this App")
