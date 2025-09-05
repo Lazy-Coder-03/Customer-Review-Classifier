@@ -9,6 +9,7 @@ from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassific
 from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 import seaborn as sns
+from transformers import EarlyStoppingCallback
 
 # Load cleaned data
 df = pd.read_csv('data/sample_data_cleaned.csv')
@@ -20,10 +21,12 @@ y = df['category_encoded'].tolist()
 # Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-# Load tokenizer and model
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using device: {device}")
 tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
 num_labels = len(set(y))
 model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels)
+model.to(device)
 
 # Tokenize
 train_encodings = tokenizer(X_train, truncation=True, padding=True, max_length=128)
@@ -35,8 +38,8 @@ class ReviewDataset(torch.utils.data.Dataset):
 		self.encodings = encodings
 		self.labels = labels
 	def __getitem__(self, idx):
-		item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
-		item['labels'] = torch.tensor(self.labels[idx])
+		item = {key: torch.tensor(val[idx]).to(device) for key, val in self.encodings.items()}
+		item['labels'] = torch.tensor(self.labels[idx]).to(device)
 		return item
 	def __len__(self):
 		return len(self.labels)
@@ -44,16 +47,20 @@ class ReviewDataset(torch.utils.data.Dataset):
 train_dataset = ReviewDataset(train_encodings, y_train)
 test_dataset = ReviewDataset(test_encodings, y_test)
 
+callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]
 training_args = TrainingArguments(
 	output_dir='output/results/distilbert_results',
-	num_train_epochs=2,
+	num_train_epochs=4,
 	per_device_train_batch_size=16,
 	per_device_eval_batch_size=16,
 	eval_strategy="epoch",
-	save_strategy="no",
+	save_strategy="epoch",
 	logging_dir='output/logs/distilbert_logs',
 	logging_steps=50,
 	report_to=[],
+	metric_for_best_model="eval_loss",
+	greater_is_better=False,
+	load_best_model_at_end=True,
 )
 
 trainer = Trainer(
@@ -61,6 +68,7 @@ trainer = Trainer(
 	args=training_args,
 	train_dataset=train_dataset,
 	eval_dataset=test_dataset,
+	callbacks=callbacks
 )
 
 trainer.train()

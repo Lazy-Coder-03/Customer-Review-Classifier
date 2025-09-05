@@ -7,7 +7,5 @@ src/__pycache__/
 *.pyd
 distilbert_model/
 output/distilbert_model/
-
-upload_to_hf.py
-
-make_data_gemini.py
+models/distilbert_model/
+results/distilbert_results/
