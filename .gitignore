@@ -6,6 +6,6 @@ src/__pycache__/
 *.pyo
 *.pyd
 distilbert_model/
-output/distilbert_model/
+output/results/
 models/distilbert_model/
 results/distilbert_results/
