@@ -18,7 +18,6 @@ def clean_text_improved(text):
     text = text.lower()
     # Remove URLs
     text = re.sub(r'http\S+|www\S+', ' ', text)
-    # Remove only punctuation that is unlikely to be meaningful in this context
     # Keep symbols like #, $, !, ?
     text = re.sub(r'[^a-z0-9\s#$?!.]', '', text)
     # Remove extra spaces
